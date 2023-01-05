@@ -76,6 +76,7 @@ exports.addGoal = (req, res, next) => {
   });
 };
 
+// TEMPORARY
 exports.addPr = (req, res, next) => {
   // TODO: add input validation & cleansing
   const exercise = req.body.exercise;
@@ -83,13 +84,12 @@ exports.addPr = (req, res, next) => {
 
   User.findById(tempID).exec((err, user) => {
     if (err) {
-      return next(err);tota
+      return next(err);
     }
 
     const newPr = new PR({
       exercise: exercise,
       weight: weight,
-      user: user._id,
     });
 
     newPr.save((err) => {
@@ -108,42 +108,43 @@ exports.addStats = (req, res, next) => {
   const numberOfWorkouts = req.body.numberOfWorkouts;
   const totalWorkoutTime = req.body.totalWorkoutTime;
   const averageWorkoutTime = req.body.averageWorkoutTime;
+  const prs = [];
 
   // TODO: turn these into actual db parsing
   const mostFrequentWorkout = req.body.mostFrequentWorkout;
   const mostFrequentExercise = req.body.mostFrequentExercise;
 
-  async.parallel({
-    user(callback) {
-      User.findById(tempID).exec(callback);
+  async.parallel(
+    {
+      user(callback) {
+        User.findById(tempID).exec(callback);
+      },
     },
-    prs(callback) {
-      PR.find({ user: tempID }).sort({ createdAt: 1 }).exec(callback);
-    },
-  }, (err, results) => {
-    if (err) {
-      return next(err);
-    }
-
-    const newStats = new Stats({
-      numberOfWorkouts: numberOfWorkouts,
-      totalWorkoutTime: totalWorkoutTime,
-      averageWorkoutTime: averageWorkoutTime,
-      mostFrequentWorkout: mostFrequentWorkout,
-      mostFrequentExercise: mostFrequentExercise,
-      prs: results.prs,
-      user: results.user._id,
-    });
-
-    newStats.save((err) => {
+    (err, results) => {
       if (err) {
         return next(err);
       }
 
-      // TODO: redirect user if successful
-      res.json("Stats added");
-    });
-  });
+      const newStats = new Stats({
+        numberOfWorkouts: numberOfWorkouts,
+        totalWorkoutTime: totalWorkoutTime,
+        averageWorkoutTime: averageWorkoutTime,
+        mostFrequentWorkout: mostFrequentWorkout,
+        mostFrequentExercise: mostFrequentExercise,
+        prs: prs,
+        user: results.user._id,
+      });
+
+      newStats.save((err) => {
+        if (err) {
+          return next(err);
+        }
+
+        // TODO: redirect user if successful
+        res.json("Stats added");
+      });
+    }
+  );
 };
 
 // TODO: create new user (form) GET/POST
