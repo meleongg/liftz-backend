@@ -54,11 +54,13 @@ exports.addExercisePost = (req, res, next) => {
       // if a PR for this exercise has not been created yet
       if (results.prCount < 1) {
         const exercise = name;
-        const prWeight = 0;
+        const prWeights = [];
+        const prDates = [];
 
         const newPR = new PR({
           exercise: exercise,
-          weight: prWeight,
+          weights: prWeights,
+          dates: prDates
         });
 
         newPR.save((err, pr) => {
@@ -157,6 +159,8 @@ exports.stopWorkout = (req, res, next) => {
   });
 
   // TODO: Update stats with new end of session information
+  // update PRs only if finished with the weight listed in the workout schema's weight field
+  // assumes that users edit the workout weights before starting it 
 };
 
 // TODO: return a form to put input
@@ -174,6 +178,8 @@ exports.updateWorkoutPost = (req, res, next) => {
     sessions: null,
     user: req.body.user,
   });
+
+  // TODO: update PRs too if the weights are greater than the current weight of PR
 
   Workout.findByIdAndUpdate(
     req.params.workoutId,
