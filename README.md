@@ -1,1 +1,1 @@
-# liftz
+# liftz-backend
