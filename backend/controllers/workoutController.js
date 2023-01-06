@@ -138,7 +138,7 @@ exports.getWorkout = (req, res, next) => {
 
 exports.stopWorkout = (req, res, next) => {
   // create and save a session as a response to a "End session" button click
-  const date = DateTime.now().toISO();
+  const date = DateTime.now().toISODate();
   const time = req.body.time;
   const id = req.params.workoutId;
 
