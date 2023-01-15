@@ -1,6 +1,8 @@
 const Workout = require("../models/Workout");
 const Exercise = require("../models/Exercise");
+const SessionExercise = require("../models/SessionExercise");
 const Session = require("../models/Session");
+const Stats = require("../models/Stats");
 const PR = require("../models/PR");
 
 const { DateTime } = require("luxon");
@@ -23,81 +25,80 @@ exports.getWorkouts = (req, res, next) => {
   });
 };
 
-// TODO: returns a form to add an exercise to a workout
-exports.addExerciseGet = (req, res, next) => {
-  let workoutId = req.params.workoutId;
-};
+// // TODO: returns a form to add an exercise to a workout
+// exports.addExerciseGet = (req, res, next) => {
+//   let workoutId = req.params.workoutId;
+// };
 
-exports.addExercisePost = (req, res, next) => {
-  // TODO: clean the name with express validator
-  let name = req.body.name;
-  name = name.toLowerCase();
-  const sets = req.body.sets;
-  const weight = req.body.weight;
-  const workoutId = req.params.workoutId;
+// exports.addExercisePost = (req, res, next) => {
+//   // TODO: clean the name with express validator
+//   let name = req.body.name;
+//   name = name.toLowerCase();
+//   const sets = req.body.sets;
+//   const weight = req.body.weight;
+//   const workoutId = req.params.workoutId;
 
-  async.parallel(
-    {
-      workout(callback) {
-        // TODO: switch to use workoutId when forms are done
-        Workout.findById(workoutId).exec(callback);
-      },
-      prCount(callback) {
-        PR.count({ name: name }).exec(callback);
-      },
-    },
-    (err, results) => {
-      if (err) {
-        return next(err);
-      }
+//   async.parallel(
+//     {
+//       workout(callback) {
+//         // TODO: switch to use workoutId when forms are done
+//         Workout.findById(workoutId).exec(callback);
+//       },
+//       prCount(callback) {
+//         PR.count({ name: name }).exec(callback);
+//       },
+//     },
+//     (err, results) => {
+//       if (err) {
+//         return next(err);
+//       }
 
-      // if a PR for this exercise has not been created yet
-      if (results.prCount < 1) {
-        const exercise = name;
-        const prWeights = [];
-        const prDates = [];
+//       // if a PR for this exercise has not been created yet
+//       if (results.prCount < 1) {
+//         const exercise = name;
+//         const prWeight = 0;
 
-        const newPR = new PR({
-          exercise: exercise,
-          weights: prWeights,
-          dates: prDates
-        });
+//         const newPR = new PR({
+//           exercise: exercise,
+//           weight: prWeight,
+//         });
 
-        newPR.save((err, pr) => {
-          if (err) {
-            return next(err);
-          }
+//         newPR.save((err, pr) => {
+//           if (err) {
+//             return next(err);
+//           }
 
-          const newExercise = new Exercise({
-            name: name,
-            sets: sets,
-            weight: weight,
-            workout: results.workout._id,
-            pr: pr._id,
-          });
+//           const newExercise = new Exercise({
+//             name: name,
+//             sets: sets,
+//             weight: weight,
+//             workout: results.workout._id,
+//             pr: pr._id,
+//           });
 
-          newExercise.save((err) => {
-            if (err) {
-              return next(err);
-            }
+//           newExercise.save((err) => {
+//             if (err) {
+//               return next(err);
+//             }
 
-            res.json("Exercise and PR added");
-          });
-        });
-      }
-    }
-  );
-};
+//             res.json("Exercise and PR added");
+//           });
+//         });
+//       }
+//     }
+//   );
+// };
 
-// TODO: render input form
+// TODO: render New Workout page
 exports.addWorkoutGet = (req, res, next) => {
   res.json({ type: "addWorkoutGet" });
 };
 
-// TODO: collect input through a form
+// TODO: collect input through New Workout page
 exports.addWorkoutPost = (req, res, next) => {
   const name = req.body.name;
   const notes = req.body.notes;
+  // exercises will be stored scraped from HTML elm values and passed via JSON
   const exercises = req.body.exercises;
   const sessions = [];
 
@@ -138,30 +139,71 @@ exports.getWorkout = (req, res, next) => {
   });
 };
 
-exports.stopWorkout = (req, res, next) => {
-  // create and save a session as a response to a "End session" button click
+exports.stopWorkout = async (req, res, next) => {
+  // create and save a session as a response to a "Done" button click
   const date = DateTime.now().toISODate();
-  const time = req.body.time;
+  // const time = req.body.time;
+
+  // object with exercise names, sets, and weights
+  const exercises = req.body.exercises;
   const id = req.params.workoutId;
 
-  const newSession = new Session({
-    date: date,
-    time: time,
-    workout: id,
-  });
+  try {
+    // update PRs (an extra feature; not needed for MVP)
+    exercises.map(async (exercise) => {
+      PR.find({ exercise: exercise.name }).exec((pr) => {
+        let newWeights = [...pr.weights]; 
+        let newDates = [...pr.dates];
 
-  newSession.save((err) => {
-    if (err) {
-      return next(err);
-    }
+        if (pr.weights.length == 0) {
+          newWeights = [exercise.weight]; 
+        } else {
+          if (exercise.weight > pr.weights[-1]) {
+            newWeights.append(exercise.weight); 
+          }
+        }
 
-    res.json("Saved new session!");
-  });
+        newDates.append(date); 
 
-  // TODO: Update stats with new end of session information
-  // update PRs only if finished with the weight listed in the workout schema's weight field
-  // assumes that users edit the workout weights before starting it 
-};
+        const pr = new PR({
+          exercise: exercise.name, 
+          weights: newWeights, 
+          dates: newDates,
+        });
+
+        await pr.save(); 
+      });
+    });
+
+    // create exercise documents
+    const exercisePromises = exercises.map(async (exercise) => {
+      const newSessionExercise = new SessionExercise(exercise);
+
+      return newSessionExercise.save(); 
+    });
+
+    const savedSessionExercises = await Promise.all(exercisePromises); 
+    // returns array of exercise ids 
+    const exerciseIds = savedSessionExercises.map((exercise) => exercise._id); 
+
+    // create session only after all exercises have finished 
+    const session = new Session({
+      date: date,
+      time: req.body.time,
+      exercises: exerciseIds,
+      workout: req.body.workout,
+    });
+
+    const savedSession = await session.save(); 
+
+    // update stats (BONUS FEATURE)
+
+
+    res.json(savedSession); 
+  } catch(err) {
+    res.status(500).send(err); 
+  }
+}
 
 // TODO: return a form to put input
 // needed to autofill fields!
@@ -170,6 +212,8 @@ exports.updateWorkoutGet = (req, res, next) => {
 };
 
 exports.updateWorkoutPost = (req, res, next) => {
+  // TODO: grab previous exercises, keep the old ones, add new ones
+
   const workout = newWorkout({
     _id: req.params.workoutId,
     name: req.body.name,
@@ -178,8 +222,6 @@ exports.updateWorkoutPost = (req, res, next) => {
     sessions: null,
     user: req.body.user,
   });
-
-  // TODO: update PRs too if the weights are greater than the current weight of PR
 
   Workout.findByIdAndUpdate(
     req.params.workoutId,

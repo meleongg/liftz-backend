@@ -77,31 +77,31 @@ exports.addGoal = (req, res, next) => {
 };
 
 // TEMPORARY
-exports.addPr = (req, res, next) => {
-  // TODO: add input validation & cleansing
-  const exercise = req.body.exercise;
-  const weight = req.body.weight;
+// exports.addPr = (req, res, next) => {
+//   // TODO: add input validation & cleansing
+//   const exercise = req.body.exercise;
+//   const weight = req.body.weight;
 
-  User.findById(tempID).exec((err, user) => {
-    if (err) {
-      return next(err);
-    }
+//   User.findById(tempID).exec((err, user) => {
+//     if (err) {
+//       return next(err);
+//     }
 
-    const newPr = new PR({
-      exercise: exercise,
-      weight: weight,
-    });
+//     const newPr = new PR({
+//       exercise: exercise,
+//       weight: weight,
+//     });
 
-    newPr.save((err) => {
-      if (err) {
-        return next(err);
-      }
+//     newPr.save((err) => {
+//       if (err) {
+//         return next(err);
+//       }
 
-      // TODO: redirect user if successful
-      res.json("PR added");
-    });
-  });
-};
+//       // TODO: redirect user if successful
+//       res.json("PR added");
+//     });
+//   });
+// };
 
 exports.addStats = (req, res, next) => {
   // TODO: add input validation & cleansing

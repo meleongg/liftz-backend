@@ -5,8 +5,9 @@ const workoutController = require("../controllers/workoutController");
 
 router.get("/", workoutController.getWorkouts);
 
-router.get("/:workoutId/add-exercise", workoutController.addExerciseGet);
-router.post("/:workoutId/add-exercise", workoutController.addExercisePost);
+// TODO: can all be submitted at once after the Submit button is clicked
+// router.get("/:workoutId/add-exercise", workoutController.addExerciseGet);
+// router.post("/:workoutId/add-exercise", workoutController.addExercisePost);
 
 router.get("/add-workout", workoutController.addWorkoutGet);
 router.post("/add-workout", workoutController.addWorkoutPost);
