@@ -151,7 +151,7 @@ exports.stopWorkout = async (req, res, next) => {
   try {
     // update PRs (an extra feature; not needed for MVP)
     exercises.map(async (exercise) => {
-      PR.find({ exercise: exercise.name }).exec((pr) => {
+      PR.find({ exercise: exercise.name }).exec(async (pr) => {
         let newWeights = [...pr.weights]; 
         let newDates = [...pr.dates];
 
@@ -165,13 +165,13 @@ exports.stopWorkout = async (req, res, next) => {
 
         newDates.append(date); 
 
-        const pr = new PR({
+        const newPr = new PR({
           exercise: exercise.name, 
           weights: newWeights, 
           dates: newDates,
         });
 
-        await pr.save(); 
+        await newPr.save(); 
       });
     });
 

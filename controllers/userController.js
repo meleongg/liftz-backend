@@ -25,7 +25,8 @@ exports.userInfo = (req, res, next) => {
 
 exports.addUser = (req, res, next) => {
   // TODO: add input validation & cleansing
-  const name = req.body.name;
+  const firstName = req.body.firstName;
+  const lastName = req.body.lastName;
   const username = req.body.username;
   const password = req.body.password;
   const workouts = [];
@@ -33,7 +34,8 @@ exports.addUser = (req, res, next) => {
   const stats = [];
 
   const newUser = new User({
-    name: name,
+    firstName: firstName, 
+    lastName: lastName, 
     username: username,
     password: password,
     workouts: workouts,
@@ -53,7 +55,10 @@ exports.addUser = (req, res, next) => {
 
 exports.addGoal = (req, res, next) => {
   // TODO: add input validation & cleansing
-  const content = req.body.content;
+  const content = req.body.goal;
+
+  console.log("received");
+  console.log(content);
 
   User.findById(tempID).exec((err, user) => {
     if (err) {

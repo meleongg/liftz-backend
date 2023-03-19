@@ -14,7 +14,7 @@ router.post("/add-workout", workoutController.addWorkoutPost);
 
 router.get("/:workoutId", workoutController.getWorkout);
 
-router.post("/:workoutId/stop-workout", workoutController.stopWorkout);
+// router.post("/:workoutId/stop-workout", workoutController.stopWorkout);
 
 router.get("/:workoutId/update", workoutController.updateWorkoutGet);
 router.post("/:workoutId/update", workoutController.updateWorkoutPost);
