@@ -15,6 +15,12 @@ router.post("/create-user", userController.addUser);
 // create goal (temporary, will have form)
 router.post("/create-goal", userController.addGoal);
 
+// update goal
+router.post("/update-goal", userController.updateGoal);
+
+// delete goal
+router.post("/delete-goal", userController.deleteGoal); 
+
 // create pr (temporary, will have form)
 // router.post("/create-pr", userController.addPr);
 
