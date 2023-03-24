@@ -91,7 +91,7 @@ exports.addGoal = (req, res, next) => {
           }
         }
       );
-      res.json("Goal added");
+      res.json(goal._id);
     });
   });
 };
@@ -133,7 +133,7 @@ exports.deleteGoal = async (req, res, next) => {
     res.status(500).send({ error: "Internal Server Error" })
   }
 
-  res.json("Goal deleted");
+  res.json(goalId);
 }
 
 // TEMPORARY
