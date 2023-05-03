@@ -1,6 +1,7 @@
 const User = require("../models/User");
 
 const async = require("async");
+const bcrypt = require("bcryptjs");
 
 // TODO: evaluate if these imports are needed after the manual adds
 const Goal = require("../models/Goal");
@@ -11,7 +12,25 @@ const Stats = require("../models/Stats");
 const tempID = "63a6a9224a17c73cdedb6bc3";
 
 exports.userInfo = (req, res, next) => {
-  User.findById(tempID)
+  const userId = req.body.userId;
+
+  User.findById(userId)
+    .populate("goals")
+    .populate("stats")
+    .exec(function (err, user_info) {
+      if (err) {
+        return next(err);
+      }
+
+      res.json(user_info);
+    });
+};
+
+exports.getUserById = (req, res, next) => {
+  const userId = req.params.userId;
+  console.log(userId);
+
+  User.findById(userId)
     .populate("goals")
     .populate("stats")
     .exec(function (err, user_info) {
@@ -27,29 +46,38 @@ exports.addUser = (req, res, next) => {
   // TODO: add input validation & cleansing
   const firstName = req.body.firstName;
   const lastName = req.body.lastName;
-  const username = req.body.username;
+  const email = req.body.email;
   const password = req.body.password;
   const workouts = [];
   const goals = [];
   const stats = [];
 
-  const newUser = new User({
-    firstName: firstName,
-    lastName: lastName,
-    username: username,
-    password: password,
-    workouts: workouts,
-    goals: goals,
-    stats: stats,
-  });
-
-  newUser.save((err) => {
+  bcrypt.hash(password, 10, async (err, hashedPassword) => {
+    // if err, do something
     if (err) {
+      console.error(err);
       return next(err);
     }
 
-    // TODO: redirect user if successful
-    res.json("User added");
+    // otherwise, store hashedPassword in DB
+    const newUser = new User({
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      password: hashedPassword,
+      workouts: workouts,
+      goals: goals,
+      stats: stats,
+    });
+
+    newUser.save((err) => {
+      if (err) {
+        console.error(err);
+        return next(err);
+      }
+
+      res.json(newUser);
+    });
   });
 };
 
@@ -97,44 +125,44 @@ exports.addGoal = (req, res, next) => {
 };
 
 exports.updateGoal = async (req, res, next) => {
-  const goalId = req.body.goalId; 
+  const goalId = req.body.goalId;
   const updatedContent = req.body.content;
 
   console.log(req.body);
 
   try {
     const updatedGoal = await Goal.findByIdAndUpdate(
-      goalId, 
+      goalId,
       { content: updatedContent },
       { new: true }
     );
     console.log(updatedGoal);
   } catch (err) {
     console.log(err);
-    return next(err); 
+    return next(err);
   }
 
   res.json("Goal updated");
-}
+};
 
 exports.deleteGoal = async (req, res, next) => {
-  const goalId = req.body.goalId; 
+  const goalId = req.body.goalId;
 
   try {
     const deletedGoal = await Goal.findByIdAndDelete(goalId);
 
     if (!deletedGoal) {
       const err = new Error("Document not found!");
-      err.status = 404; 
-      return next(err); 
+      err.status = 404;
+      return next(err);
     }
   } catch (err) {
     console.log(err);
-    res.status(500).send({ error: "Internal Server Error" })
+    res.status(500).send({ error: "Internal Server Error" });
   }
 
   res.json(goalId);
-}
+};
 
 // TEMPORARY
 // exports.addPr = (req, res, next) => {

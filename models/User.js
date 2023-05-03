@@ -2,19 +2,12 @@ const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
 
-// TODO: add password
-
 const userSchema = new Schema(
   {
     firstName: { type: String, required: true, trim: true, minLength: 1 },
     lastName: { type: String, required: true, trim: true, minLength: 1 },
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      minLength: 3,
-    },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
     workouts: [{ type: Schema.Types.ObjectId, ref: "Workout" }],
     goals: [{ type: Schema.Types.ObjectId, ref: "Goal" }],
     stats: [{ type: Schema.Types.ObjectId, ref: "Stats" }],
