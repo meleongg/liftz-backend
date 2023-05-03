@@ -84,18 +84,16 @@ exports.addUser = (req, res, next) => {
 exports.addGoal = (req, res, next) => {
   // TODO: add input validation & cleansing
   const content = req.body.goal;
+  const userId = req.params.userId;
 
-  console.log("received");
-  console.log(content);
-
-  User.findById(tempID).exec((err, user) => {
+  User.findById(userId).exec((err, user) => {
     if (err) {
       return next(err);
     }
 
     const newGoal = new Goal({
       content: content,
-      user: user._id,
+      user: userId,
     });
 
     newGoal.save((err, goal) => {
@@ -103,19 +101,13 @@ exports.addGoal = (req, res, next) => {
         return next(err);
       }
 
-      console.log(goal._id);
-
-      // TODO: redirect user if successful
-      // res.json("Goal added");
       User.findOneAndUpdate(
-        { _id: tempID },
+        { _id: userId },
         { $push: { goals: goal._id } },
         { new: true },
         (err, updatedUser) => {
           if (err) {
             return next(err);
-          } else {
-            console.log(updatedUser);
           }
         }
       );

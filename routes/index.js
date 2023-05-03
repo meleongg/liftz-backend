@@ -17,7 +17,7 @@ router.get("/user/:userId", userController.getUserById);
 router.post("/create-user", userController.addUser);
 
 // create goal (temporary, will have form)
-router.post("/create-goal", userController.addGoal);
+router.post("/:userId/create-goal", userController.addGoal);
 
 // update goal
 router.post("/update-goal", userController.updateGoal);
