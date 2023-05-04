@@ -8,6 +8,8 @@ const Goal = require("../models/Goal");
 const PR = require("../models/PR");
 const Stats = require("../models/Stats");
 
+const mongoose = require("mongoose");
+
 // TODO: Once I figure out how to include the user's id in the request
 const tempID = "63a6a9224a17c73cdedb6bc3";
 
@@ -32,6 +34,7 @@ exports.getUserById = (req, res, next) => {
 
   User.findById(userId)
     .populate("goals")
+    .populate("workouts")
     .populate("stats")
     .exec(function (err, user_info) {
       if (err) {
@@ -139,6 +142,10 @@ exports.updateGoal = async (req, res, next) => {
 
 exports.deleteGoal = async (req, res, next) => {
   const goalId = req.body.goalId;
+  const userId = req.params.userId;
+
+  console.log(goalId);
+  console.log(userId);
 
   try {
     const deletedGoal = await Goal.findByIdAndDelete(goalId);
@@ -146,8 +153,17 @@ exports.deleteGoal = async (req, res, next) => {
     if (!deletedGoal) {
       const err = new Error("Document not found!");
       err.status = 404;
+      console.error(err);
       return next(err);
     }
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userId },
+      { $pull: { goals: goalId } },
+      { new: true }
+    );
+
+    console.log(updatedUser);
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });

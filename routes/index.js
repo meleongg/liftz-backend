@@ -19,11 +19,11 @@ router.post("/create-user", userController.addUser);
 // create goal (temporary, will have form)
 router.post("/:userId/create-goal", userController.addGoal);
 
-// update goal
+// update goal (no need for :userId because the Goal ObjectId stays the same)
 router.post("/update-goal", userController.updateGoal);
 
 // delete goal
-router.post("/delete-goal", userController.deleteGoal);
+router.post("/:userId/delete-goal", userController.deleteGoal);
 
 // create pr (temporary, will have form)
 // router.post("/create-pr", userController.addPr);

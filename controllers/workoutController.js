@@ -89,54 +89,77 @@ exports.getWorkouts = (req, res, next) => {
 //   );
 // };
 
-// TODO: render New Workout page
-exports.addWorkoutGet = (req, res, next) => {
-  res.json({ type: "addWorkoutGet" });
-};
-
 // TODO: collect input through New Workout page
-exports.addWorkoutPost = (req, res, next) => {
+exports.addWorkoutPost = async (req, res, next) => {
   const name = req.body.name;
   const notes = req.body.notes;
-  // exercises will be stored scraped from HTML elm values and passed via JSON
   const exercises = req.body.exercises;
   const sessions = [];
+  const userId = req.params.userId;
 
-  // TODO: will prolly need to turn into async.parallel to fetch exercises
-  User.findById(tempID).exec((err, user) => {
-    if (err) {
-      return next(err);
-    }
-
+  try {
     const newWorkout = new Workout({
+      user: userId,
       name: name,
       notes: notes,
-      // TODO: fix this to be not null
-      exercises: null,
+      exercises: exercises,
       sessions: sessions,
-      user: user._id,
     });
 
-    newWorkout.save((err) => {
-      if (err) {
-        return next(err);
-      }
+    const exerciseIds = [];
 
-      res.json("added workout successfully");
-    });
-  });
+    // Loop through each exercise in the exercises array
+    const createdExercises = await Promise.all(
+      exercises.map(async (exercise) => {
+        // Create a new Exercise document based off of the Exercise Schema
+        const newExercise = new Exercise({
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          workout: newWorkout._id,
+        });
+
+        // Save the new Exercise document to the database
+        const savedExercise = await newExercise.save();
+        exerciseIds.push(savedExercise._id);
+
+        return savedExercise;
+      })
+    );
+
+    newWorkout.exercises = exerciseIds;
+
+    const workoutId = await newWorkout.save();
+    console.log(workoutId);
+
+    await User.findOneAndUpdate(
+      { _id: userId },
+      { $push: { workouts: workoutId } },
+      { new: true }
+    );
+
+    res.json(workoutId._id);
+  } catch (err) {
+    console.log(err);
+    console.error(err);
+    next(err);
+  }
 };
 
 exports.getWorkout = (req, res, next) => {
   const id = req.params.workoutId;
 
-  Workout.findById(id).exec((err, workout) => {
-    if (err) {
-      return next(err);
-    }
+  Workout.findById(id)
+    .populate("exercises")
+    .populate("sessions")
+    .exec((err, workout) => {
+      if (err) {
+        return next(err);
+      }
 
-    res.json(workout);
-  });
+      res.json(workout);
+    });
 };
 
 exports.stopWorkout = async (req, res, next) => {
@@ -152,26 +175,26 @@ exports.stopWorkout = async (req, res, next) => {
     // update PRs (an extra feature; not needed for MVP)
     exercises.map(async (exercise) => {
       PR.find({ exercise: exercise.name }).exec(async (pr) => {
-        let newWeights = [...pr.weights]; 
+        let newWeights = [...pr.weights];
         let newDates = [...pr.dates];
 
         if (pr.weights.length == 0) {
-          newWeights = [exercise.weight]; 
+          newWeights = [exercise.weight];
         } else {
           if (exercise.weight > pr.weights[-1]) {
-            newWeights.append(exercise.weight); 
+            newWeights.append(exercise.weight);
           }
         }
 
-        newDates.append(date); 
+        newDates.append(date);
 
         const newPr = new PR({
-          exercise: exercise.name, 
-          weights: newWeights, 
+          exercise: exercise.name,
+          weights: newWeights,
           dates: newDates,
         });
 
-        await newPr.save(); 
+        await newPr.save();
       });
     });
 
@@ -179,14 +202,14 @@ exports.stopWorkout = async (req, res, next) => {
     const exercisePromises = exercises.map(async (exercise) => {
       const newSessionExercise = new SessionExercise(exercise);
 
-      return newSessionExercise.save(); 
+      return newSessionExercise.save();
     });
 
-    const savedSessionExercises = await Promise.all(exercisePromises); 
-    // returns array of exercise ids 
-    const exerciseIds = savedSessionExercises.map((exercise) => exercise._id); 
+    const savedSessionExercises = await Promise.all(exercisePromises);
+    // returns array of exercise ids
+    const exerciseIds = savedSessionExercises.map((exercise) => exercise._id);
 
-    // create session only after all exercises have finished 
+    // create session only after all exercises have finished
     const session = new Session({
       date: date,
       time: req.body.time,
@@ -194,16 +217,15 @@ exports.stopWorkout = async (req, res, next) => {
       workout: req.body.workout,
     });
 
-    const savedSession = await session.save(); 
+    const savedSession = await session.save();
 
     // update stats (BONUS FEATURE)
 
-
-    res.json(savedSession); 
-  } catch(err) {
-    res.status(500).send(err); 
+    res.json(savedSession);
+  } catch (err) {
+    res.status(500).send(err);
   }
-}
+};
 
 // TODO: return a form to put input
 // needed to autofill fields!
@@ -237,58 +259,68 @@ exports.updateWorkoutPost = (req, res, next) => {
   );
 };
 
-// deleting a workout deletes the corresponding Exercises but PRs stay the same
-exports.deleteWorkoutGet = (req, res, next) => {
-  async.parallel(
-    {
-      workout(callback) {
-        Workout.findById(req.params.workoutId).exec(callback);
-      },
-      exercises(callback) {
-        Exercise.find({ workout: req.params.workoutId }).exec(callback);
-      },
-    },
-    (err, results) => {
-      if (err) {
-        return next(err);
-      }
+exports.deleteWorkoutPost = async (req, res, next) => {
+  const userId = req.body.userId;
+  const workoutId = req.params.workoutId;
 
-      res.json(results);
+  try {
+    const deletedWorkout = await Workout.findByIdAndDelete(workoutId);
+
+    if (!deletedWorkout) {
+      const err = new Error("Document not found!");
+      err.status = 404;
+      console.error(err);
+      return next(err);
     }
-  );
+
+    await User.findOneAndUpdate(
+      { _id: userId },
+      { $pull: { workouts: workoutId } },
+      { new: true }
+    );
+
+    await Exercise.deleteMany({ workoutId: workoutId });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ error: "Internal Server Error" });
+  }
+
+  res.json({
+    message: "Successfully deleted workout and associated exercises.",
+  });
 };
 
-exports.deleteWorkoutPost = (req, res, next) => {
-  async.parallel(
-    {
-      workout(callback) {
-        Workout.findById(req.params.workoutId).exec(callback);
-      },
-      exercises(callback) {
-        Exercise.find({ workout: workoutId }).exec(callback);
-      },
-    },
-    (err, results) => {
-      if (err) {
-        return next(err);
-      }
+// exports.deleteWorkoutPost = (req, res, next) => {
+//   async.parallel(
+//     {
+//       workout(callback) {
+//         Workout.findById(req.params.workoutId).exec(callback);
+//       },
+//       exercises(callback) {
+//         Exercise.find({ workout: workoutId }).exec(callback);
+//       },
+//     },
+//     (err, results) => {
+//       if (err) {
+//         return next(err);
+//       }
 
-      // delete corresponding exercises for workout
-      for (const exercise of results.exercises) {
-        Exercise.findByIdAndRemove(exercise._id, (err) => {
-          if (err) {
-            return next(err);
-          }
-        });
-      }
+//       // delete corresponding exercises for workout
+//       for (const exercise of results.exercises) {
+//         Exercise.findByIdAndRemove(exercise._id, (err) => {
+//           if (err) {
+//             return next(err);
+//           }
+//         });
+//       }
 
-      Workout.findByIdAndRemove(req.params.workoutId, (err) => {
-        if (err) {
-          return next(err);
-        }
+//       Workout.findByIdAndRemove(req.params.workoutId, (err) => {
+//         if (err) {
+//           return next(err);
+//         }
 
-        res.redirect("/workouts");
-      });
-    }
-  );
-};
+//         res.redirect("/workouts");
+//       });
+//     }
+//   );
+// };
