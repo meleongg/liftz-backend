@@ -147,6 +147,22 @@ exports.addWorkoutPost = async (req, res, next) => {
   }
 };
 
+exports.getSession = (req, res, next) => {
+  const sessionId = req.params.sessionId;
+
+  Session.findById(sessionId)
+    .populate("exercises")
+    .populate("workout")
+    .exec((err, session) => {
+      if (err) {
+        console.log(err);
+        return next(err);
+      }
+
+      res.json(session);
+    });
+};
+
 exports.getWorkout = (req, res, next) => {
   const id = req.params.workoutId;
 
@@ -163,67 +179,88 @@ exports.getWorkout = (req, res, next) => {
 };
 
 exports.stopWorkout = async (req, res, next) => {
-  // create and save a session as a response to a "Done" button click
-  const date = DateTime.now().toISODate();
-  // const time = req.body.time;
-
-  // object with exercise names, sets, and weights
-  const exercises = req.body.exercises;
-  const id = req.params.workoutId;
+  const date = DateTime.now().toLocaleString(DateTime.DATE_SHORT);
+  const time = req.body.time;
+  const sessionExercises = req.body.sessionExercises;
+  const workoutId = req.params.workoutId;
 
   try {
-    // update PRs (an extra feature; not needed for MVP)
-    exercises.map(async (exercise) => {
-      PR.find({ exercise: exercise.name }).exec(async (pr) => {
-        let newWeights = [...pr.weights];
-        let newDates = [...pr.dates];
+    let newWeights = [];
+    let newDates = [];
 
-        if (pr.weights.length == 0) {
-          newWeights = [exercise.weight];
-        } else {
-          if (exercise.weight > pr.weights[-1]) {
-            newWeights.append(exercise.weight);
-          }
-        }
+    // create exercise documents and update PRs
+    const exercisePromises = sessionExercises.map(async (exercise) => {
+      let pr = await PR.findOne({
+        exercise: exercise.name,
+        workout: workoutId,
+      });
 
-        newDates.append(date);
+      if (pr) {
+        newWeights = [...pr.weights];
+        newDates = [...pr.dates];
+      }
 
+      if (
+        pr &&
+        newWeights.length > 0 &&
+        exercise.weight > newWeights[newWeights.length - 1]
+      ) {
+        newWeights.push(exercise.weight);
+        newDates.push(date);
+      } else {
+        newWeights = [exercise.weight];
+        newDates = [date];
+      }
+
+      if (pr) {
+        pr.weights = newWeights;
+        pr.dates = newDates;
+
+        await pr.save();
+      } else {
         const newPr = new PR({
           exercise: exercise.name,
           weights: newWeights,
           dates: newDates,
+          workout: workoutId,
         });
 
-        await newPr.save();
-      });
-    });
+        pr = await newPr.save();
 
-    // create exercise documents
-    const exercisePromises = exercises.map(async (exercise) => {
-      const newSessionExercise = new SessionExercise(exercise);
+        // update the corresponding Exercise Object with the PR ID
+        await Exercise.findOneAndUpdate(
+          { name: exercise.name, workout: workoutId },
+          { pr: pr }
+        );
+      }
+
+      const newSessionExercise = new SessionExercise({
+        name: exercise.name,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        weight: exercise.weight,
+      });
 
       return newSessionExercise.save();
     });
 
     const savedSessionExercises = await Promise.all(exercisePromises);
-    // returns array of exercise ids
     const exerciseIds = savedSessionExercises.map((exercise) => exercise._id);
 
-    // create session only after all exercises have finished
     const session = new Session({
       date: date,
-      time: req.body.time,
+      time: time,
       exercises: exerciseIds,
-      workout: req.body.workout,
+      workout: workoutId,
     });
 
     const savedSession = await session.save();
 
-    // update stats (BONUS FEATURE)
-
-    res.json(savedSession);
+    res.json(savedSession._id);
   } catch (err) {
+    console.log(err);
     res.status(500).send(err);
+    return next(err);
   }
 };
 

@@ -13,7 +13,9 @@ router.post("/:userId/create-workout", workoutController.addWorkoutPost);
 
 router.get("/:workoutId", workoutController.getWorkout);
 
-// router.post("/:workoutId/stop-workout", workoutController.stopWorkout);
+router.get("/sessions/:sessionId", workoutController.getSession);
+
+router.post("/:workoutId/session-end", workoutController.stopWorkout);
 
 router.get("/:workoutId/update", workoutController.updateWorkoutGet);
 router.post("/:workoutId/update", workoutController.updateWorkoutPost);
