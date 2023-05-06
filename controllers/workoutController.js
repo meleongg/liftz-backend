@@ -264,36 +264,74 @@ exports.stopWorkout = async (req, res, next) => {
   }
 };
 
-// TODO: return a form to put input
-// needed to autofill fields!
-exports.updateWorkoutGet = (req, res, next) => {
-  res.json({ type: "updateWorkoutGet" });
-};
+exports.updateWorkoutPost = async (req, res, next) => {
+  try {
+    // TODO: grab previous exercises, keep the old ones, add new ones
+    const workoutId = req.params.workoutId;
+    const exercises = req.body.workout.exercises;
+    const exerciseIds = [];
 
-exports.updateWorkoutPost = (req, res, next) => {
-  // TODO: grab previous exercises, keep the old ones, add new ones
+    // Loop through each exercise in the exercises array
+    const createdExercises = await Promise.all(
+      exercises.map(async (exercise) => {
+        // Create a new Exercise document based off of the Exercise Schema
+        if (exercise._id) {
+          const exerciseUpdates = {
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            weight: exercise.weight,
+          };
+          const options = { new: true };
+          const updatedExercise = await Exercise.findByIdAndUpdate(
+            exercise._id,
+            exerciseUpdates,
+            options
+          );
+          exerciseIds.push(updatedExercise._id);
 
-  const workout = newWorkout({
-    _id: req.params.workoutId,
-    name: req.body.name,
-    notes: req.body.notes,
-    exercises: null,
-    sessions: null,
-    user: req.body.user,
-  });
+          return updatedExercise;
+        } else {
+          const newExercise = new Exercise({
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            weight: exercise.weight,
+            workout: workoutId,
+          });
 
-  Workout.findByIdAndUpdate(
-    req.params.workoutId,
-    workout,
-    {},
-    (err, result) => {
-      if (err) {
-        return next(err);
-      }
+          // Save the new Exercise document to the database
+          const savedExercise = await newExercise.save();
+          exerciseIds.push(savedExercise._id);
 
-      res.redirect(result.url);
-    }
-  );
+          return savedExercise;
+        }
+      })
+    );
+
+    // Remove exercises that don't show up in newExerciseObjects
+    await Exercise.deleteMany({
+      _id: { $nin: exerciseIds },
+      workout: workoutId,
+    });
+
+    const workoutUpdates = {
+      name: req.body.workout.name,
+      notes: req.body.workout.notes,
+      exercises: exerciseIds,
+    };
+
+    const updatedWorkout = await Workout.findByIdAndUpdate(
+      workoutId,
+      workoutUpdates,
+      { new: true }
+    );
+
+    res.json(updatedWorkout._id);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
 };
 
 exports.deleteWorkoutPost = async (req, res, next) => {
