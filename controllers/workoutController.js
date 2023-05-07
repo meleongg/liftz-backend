@@ -294,6 +294,7 @@ exports.deleteWorkoutPost = async (req, res, next) => {
     );
 
     await Exercise.deleteMany({ workoutId: workoutId });
+    await Session.deleteMany({ workoutId: workoutId });
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });
