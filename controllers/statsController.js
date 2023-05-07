@@ -1,17 +1,14 @@
-const Stat = require("../models/Stats");
+const PR = require("../models/PR");
 
-// TODO: make userId able to be generated per user
-const tempUserId = "63a6a9224a17c73cdedb6bc3";
-
-// called everytime the time period changes, automatically loads to all time
 exports.getPrs = (req, res, next) => {
-  Stat.find({ user: tempUserId })
-    .populate("prs")
-    .exec((err, stats) => {
-      if (err) {
-        return next(err);
-      }
+  const userId = req.params.userId;
 
-      res.json(stats);
-    });
+  PR.find({ user: userId }).exec((err, stats) => {
+    if (err) {
+      console.log(err);
+      return next(err);
+    }
+
+    res.json(stats);
+  });
 };

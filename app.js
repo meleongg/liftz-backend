@@ -14,7 +14,6 @@ const User = require("./models/User");
 
 const indexRouter = require("./routes/index");
 const calendarRouter = require("./routes/calendar");
-const plateCalculatorRouter = require("./routes/plateCalculator");
 const statsRouter = require("./routes/stats");
 const workoutLibraryRouter = require("./routes/workoutLibrary");
 
@@ -121,7 +120,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/calendar", calendarRouter);
-app.use("/plate-calculator", plateCalculatorRouter);
 app.use("/stats", statsRouter);
 app.use("/workouts", workoutLibraryRouter);
 
