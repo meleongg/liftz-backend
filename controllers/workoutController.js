@@ -207,7 +207,7 @@ exports.stopWorkout = async (req, res, next) => {
       ) {
         newWeights.push(exercise.weight);
         newDates.push(date);
-      } else {
+      } else if (newWeights.length == 0) {
         newWeights = [exercise.weight];
         newDates = [date];
       }
@@ -255,6 +255,12 @@ exports.stopWorkout = async (req, res, next) => {
     });
 
     const savedSession = await session.save();
+
+    await Workout.findOneAndUpdate(
+      { _id: workoutId },
+      { $push: { sessions: savedSession._id } },
+      { new: true }
+    );
 
     res.json(savedSession._id);
   } catch (err) {

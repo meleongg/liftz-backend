@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 
 const sessionSchema = new Schema({
   date: { type: Date },
-  time: { type: Number, required: true, trim: true, min: 1 },
+  time: { type: Number, required: true, trim: true },
   exercises: [{ type: Schema.Types.ObjectId, ref: "SessionExercise" }],
   workout: { type: Schema.Types.ObjectId, ref: "Workout" },
 });
