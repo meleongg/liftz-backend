@@ -4,90 +4,20 @@ const SessionExercise = require("../models/SessionExercise");
 const Session = require("../models/Session");
 const Stats = require("../models/Stats");
 const PR = require("../models/PR");
+const User = require("../models/User");
 
 const { DateTime } = require("luxon");
-
-// TODO: temporary user and hardcoded workout
-const User = require("../models/User");
-const tempID = "63a6a9224a17c73cdedb6bc3";
-
-// const tempWorkoutID = "63af9e97bc465772d2c5f2f7";
-
-const async = require("async");
 
 exports.getWorkouts = (req, res, next) => {
   Workout.find({ user: tempID }).exec((err, workouts) => {
     if (err) {
+      console.log(err);
       return next(err);
     }
 
     res.json(workouts);
   });
 };
-
-// // TODO: returns a form to add an exercise to a workout
-// exports.addExerciseGet = (req, res, next) => {
-//   let workoutId = req.params.workoutId;
-// };
-
-// exports.addExercisePost = (req, res, next) => {
-//   // TODO: clean the name with express validator
-//   let name = req.body.name;
-//   name = name.toLowerCase();
-//   const sets = req.body.sets;
-//   const weight = req.body.weight;
-//   const workoutId = req.params.workoutId;
-
-//   async.parallel(
-//     {
-//       workout(callback) {
-//         // TODO: switch to use workoutId when forms are done
-//         Workout.findById(workoutId).exec(callback);
-//       },
-//       prCount(callback) {
-//         PR.count({ name: name }).exec(callback);
-//       },
-//     },
-//     (err, results) => {
-//       if (err) {
-//         return next(err);
-//       }
-
-//       // if a PR for this exercise has not been created yet
-//       if (results.prCount < 1) {
-//         const exercise = name;
-//         const prWeight = 0;
-
-//         const newPR = new PR({
-//           exercise: exercise,
-//           weight: prWeight,
-//         });
-
-//         newPR.save((err, pr) => {
-//           if (err) {
-//             return next(err);
-//           }
-
-//           const newExercise = new Exercise({
-//             name: name,
-//             sets: sets,
-//             weight: weight,
-//             workout: results.workout._id,
-//             pr: pr._id,
-//           });
-
-//           newExercise.save((err) => {
-//             if (err) {
-//               return next(err);
-//             }
-
-//             res.json("Exercise and PR added");
-//           });
-//         });
-//       }
-//     }
-//   );
-// };
 
 // TODO: collect input through New Workout page
 exports.addWorkoutPost = async (req, res, next) => {
@@ -181,6 +111,7 @@ exports.getWorkout = (req, res, next) => {
 exports.stopWorkout = async (req, res, next) => {
   const date = DateTime.now().toLocaleString(DateTime.DATE_SHORT);
   const time = req.body.time;
+  const userId = req.body.userId;
   const sessionExercises = req.body.sessionExercises;
   const workoutId = req.params.workoutId;
 
@@ -223,6 +154,7 @@ exports.stopWorkout = async (req, res, next) => {
           weights: newWeights,
           dates: newDates,
           workout: workoutId,
+          user: userId,
         });
 
         pr = await newPr.save();
@@ -252,6 +184,7 @@ exports.stopWorkout = async (req, res, next) => {
       time: time,
       exercises: exerciseIds,
       workout: workoutId,
+      user: userId,
     });
 
     const savedSession = await session.save();
@@ -370,38 +303,3 @@ exports.deleteWorkoutPost = async (req, res, next) => {
     message: "Successfully deleted workout and associated exercises.",
   });
 };
-
-// exports.deleteWorkoutPost = (req, res, next) => {
-//   async.parallel(
-//     {
-//       workout(callback) {
-//         Workout.findById(req.params.workoutId).exec(callback);
-//       },
-//       exercises(callback) {
-//         Exercise.find({ workout: workoutId }).exec(callback);
-//       },
-//     },
-//     (err, results) => {
-//       if (err) {
-//         return next(err);
-//       }
-
-//       // delete corresponding exercises for workout
-//       for (const exercise of results.exercises) {
-//         Exercise.findByIdAndRemove(exercise._id, (err) => {
-//           if (err) {
-//             return next(err);
-//           }
-//         });
-//       }
-
-//       Workout.findByIdAndRemove(req.params.workoutId, (err) => {
-//         if (err) {
-//           return next(err);
-//         }
-
-//         res.redirect("/workouts");
-//       });
-//     }
-//   );
-// };

@@ -20,7 +20,7 @@ router.post("/create-user", userController.addUser);
 router.post("/:userId/create-goal", userController.addGoal);
 
 // update goal (no need for :userId because the Goal ObjectId stays the same)
-router.post("/update-goal", userController.updateGoal);
+router.post("/:userId/update-goal", userController.updateGoal);
 
 // delete goal
 router.post("/:userId/delete-goal", userController.deleteGoal);

@@ -7,6 +7,7 @@ const prSchema = new Schema({
   weights: [{ type: Number, required: true, trim: true }],
   dates: [{ type: Date, required: true, trim: true }],
   workout: { type: Schema.Types.ObjectId, ref: "Workout" },
+  user: { type: Schema.Types.ObjectId, ref: "User" },
 });
 
 module.exports = mongoose.model("PR", prSchema);

@@ -5,6 +5,8 @@ const calendarController = require("../controllers/calendarController")
 
 router.get("/", calendarController.getSessions);
 
-router.get("/:date", calendarController.getSession);
+router.get("/:userId", calendarController.getSessions);
+
+router.get("/:sessionId", calendarController.getSession);
 
 module.exports = router;

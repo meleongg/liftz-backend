@@ -2,38 +2,30 @@ const Session = require("../models/Session");
 
 // dates are in MM-DD-YYYY
 // gets sessions within a specified period
-exports.getSessions = (req, res, next) => {
-  const startDate = req.body.startDate;
-  const endDate = req.body.endDate;
+exports.getSessions = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
 
-  Session.find({ date: { $gte: startDate, $lte: endDate } })
-    .sort({ date: 1 })
-    .exec((err, sessions) => {
-      if (err) {
-        return next(err);
-      }
+    const sessions = await Session.find({ user: userId })
+      .sort({ date: 1 })
+      .exec();
 
-      res.json(sessions);
-    });
+    res.json(sessions);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
 };
 
 // gets specific sessions when a calendar date is clicked
-exports.getSession = (req, res, next) => {
-  const targetDate = req.params.date;
+exports.getSession = async (req, res, next) => {
+  try {
+    const sessionId = req.params.sessionId;
 
-  Session.find({ date: targetDate })
-    .sort({ date: 1 })
-    .exec((err, sessions) => {
-      if (err) {
-        return next;
-      }
+    const session = await Session.findById(sessionId);
 
-      if (sessions.length == 0) {
-        const err = new Error("No workout sessions found!");
-        err.status = 404;
-        return next(err);
-      }
-
-      res.json(sessions);
-    });
+    res.json(session);
+  } catch (error) {
+    next(error);
+  }
 };
