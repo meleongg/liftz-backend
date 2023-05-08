@@ -123,7 +123,7 @@ exports.stopWorkout = async (req, res, next) => {
     const exercisePromises = sessionExercises.map(async (exercise) => {
       let pr = await PR.findOne({
         exercise: exercise.name,
-        workout: workoutId,
+        user: userId,
       });
 
       if (pr) {
@@ -293,8 +293,8 @@ exports.deleteWorkoutPost = async (req, res, next) => {
       { new: true }
     );
 
-    await Exercise.deleteMany({ workoutId: workoutId });
-    await Session.deleteMany({ workoutId: workoutId });
+    await Exercise.deleteMany({ workout: workoutId });
+    await Session.deleteMany({ workout: workoutId });
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });
