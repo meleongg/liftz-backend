@@ -1,17 +1,8 @@
 const User = require("../models/User");
-
 const async = require("async");
 const bcrypt = require("bcryptjs");
-
-// TODO: evaluate if these imports are needed after the manual adds
 const Goal = require("../models/Goal");
-const PR = require("../models/PR");
 const Stats = require("../models/Stats");
-
-const mongoose = require("mongoose");
-
-// TODO: Once I figure out how to include the user's id in the request
-const tempID = "63a6a9224a17c73cdedb6bc3";
 
 exports.checkEmail = async (req, res, next) => {
   const email = req.body.email;
