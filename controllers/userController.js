@@ -13,6 +13,23 @@ const mongoose = require("mongoose");
 // TODO: Once I figure out how to include the user's id in the request
 const tempID = "63a6a9224a17c73cdedb6bc3";
 
+exports.checkEmail = async (req, res, next) => {
+  const email = req.body.email;
+
+  try {
+    const userArr = await User.find({ email: email }).exec();
+
+    if (userArr.length === 0) {
+      res.json({ message: "no duplicates" });
+    } else {
+      res.json({ message: "duplicate" });
+    }
+  } catch (err) {
+    console.log(err);
+    return next(err);
+  }
+};
+
 exports.userInfo = (req, res, next) => {
   const userId = req.body.userId;
 
