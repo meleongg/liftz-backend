@@ -1,8 +1,14 @@
-const User = require("../models/User");
 const async = require("async");
 const bcrypt = require("bcryptjs");
+
+const User = require("../models/User");
 const Goal = require("../models/Goal");
 const Stats = require("../models/Stats");
+const PR = require("../models/PR");
+const Session = require("../models/Session");
+const SessionExercise = require("../models/SessionExercise");
+const Workout = require("../models/Workout");
+const Exercise = require("../models/Exercise");
 
 exports.validateEmail = async (req, res, next) => {
   const userId = req.params.userId;
@@ -156,26 +162,33 @@ exports.deleteUser = async (req, res, next) => {
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
-      const err = new Error("Document not found!");
+      const err = new Error("User not found!");
       err.status = 404;
       console.error(err);
       return next(err);
     }
 
-    // delete Goals
-    // delete PRs
-    // delete Sessions
-    // delete associated SessionExercises
-    // delete Stats?
-    // delete all Workouts
+    await Goal.deleteMany({ user: userId });
+    await PR.deleteMany({ user: userId });
 
-    console.log(updatedUser);
+    const sessions = await Session.find({ user: userId });
+    for (const session of sessions) {
+      await SessionExercise.deleteMany({ session: session._id });
+    }
+    await Session.deleteMany({ user: userId });
+    // delete Stats?
+
+    const workouts = await Workout.find({ user: userId });
+    for (const workout of workouts) {
+      await Exercise.deleteMany({ workout: workout._id });
+    }
+    await Workout.deleteMany({ user: userId });
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });
   }
 
-  res.json(goalId);
+  res.json({ message: "User deleted" });
 };
 
 exports.addGoal = (req, res, next) => {
