@@ -4,6 +4,43 @@ const bcrypt = require("bcryptjs");
 const Goal = require("../models/Goal");
 const Stats = require("../models/Stats");
 
+exports.validateEmail = async (req, res, next) => {
+  const userId = req.params.userId;
+  const email = req.body.email;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (user.email !== email) {
+      res.json({ message: "no match" });
+    } else {
+      res.json({ message: "match" });
+    }
+  } catch (err) {
+    console.log(err);
+    return next(err);
+  }
+};
+
+exports.validatePassword = async (req, res, next) => {
+  const userId = req.params.userId;
+  const password = req.body.password;
+
+  try {
+    const user = await User.findById(userId);
+    const compareRes = await bcrypt.compare(password, user.password);
+
+    if (compareRes) {
+      res.json({ message: "match" });
+    } else {
+      res.json({ message: "no match" });
+    }
+  } catch (err) {
+    console.log(err);
+    return next(err);
+  }
+};
+
 exports.checkEmail = async (req, res, next) => {
   const email = req.body.email;
 
@@ -90,6 +127,55 @@ exports.addUser = (req, res, next) => {
       res.json(newUser);
     });
   });
+};
+
+exports.updateUser = async (req, res, next) => {
+  const userId = req.params.userId;
+  const updatedEmail = req.body.email;
+  const updatedPassword = req.body.password;
+
+  try {
+    const hashedPassword = await bcrypt.hash(updatedPassword, 10);
+    await User.findByIdAndUpdate(
+      userId,
+      { email: updatedEmail, password: hashedPassword },
+      { new: true }
+    );
+  } catch (err) {
+    console.log(err);
+    return next(err);
+  }
+
+  res.json("User updated");
+};
+
+exports.deleteUser = async (req, res, next) => {
+  const userId = req.params.userId;
+
+  try {
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      const err = new Error("Document not found!");
+      err.status = 404;
+      console.error(err);
+      return next(err);
+    }
+
+    // delete Goals
+    // delete PRs
+    // delete Sessions
+    // delete associated SessionExercises
+    // delete Stats?
+    // delete all Workouts
+
+    console.log(updatedUser);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ error: "Internal Server Error" });
+  }
+
+  res.json(goalId);
 };
 
 exports.addGoal = (req, res, next) => {
@@ -180,33 +266,6 @@ exports.deleteGoal = async (req, res, next) => {
   res.json(goalId);
 };
 
-// TEMPORARY
-// exports.addPr = (req, res, next) => {
-//   // TODO: add input validation & cleansing
-//   const exercise = req.body.exercise;
-//   const weight = req.body.weight;
-
-//   User.findById(tempID).exec((err, user) => {
-//     if (err) {
-//       return next(err);
-//     }
-
-//     const newPr = new PR({
-//       exercise: exercise,
-//       weight: weight,
-//     });
-
-//     newPr.save((err) => {
-//       if (err) {
-//         return next(err);
-//       }
-
-//       // TODO: redirect user if successful
-//       res.json("PR added");
-//     });
-//   });
-// };
-
 exports.addStats = (req, res, next) => {
   // TODO: add input validation & cleansing
   const numberOfWorkouts = req.body.numberOfWorkouts;
@@ -250,7 +309,3 @@ exports.addStats = (req, res, next) => {
     }
   );
 };
-
-// TODO: create new user (form) GET/POST
-
-// TODO: update existing user (form) UPDATE
