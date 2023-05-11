@@ -19,13 +19,20 @@ exports.getWorkouts = (req, res, next) => {
   });
 };
 
-// TODO: collect input through New Workout page
 exports.addWorkoutPost = async (req, res, next) => {
   const name = req.body.name;
   const notes = req.body.notes;
   const exercises = req.body.exercises;
   const sessions = [];
   const userId = req.params.userId;
+
+  body("name").notEmpty().withMessage("Workout name is required").run(req);
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
   try {
     const newWorkout = new Workout({
@@ -39,7 +46,7 @@ exports.addWorkoutPost = async (req, res, next) => {
     const exerciseIds = [];
 
     // Loop through each exercise in the exercises array
-    const createdExercises = await Promise.all(
+    await Promise.all(
       exercises.map(async (exercise) => {
         // Create a new Exercise document based off of the Exercise Schema
         const newExercise = new Exercise({
@@ -61,7 +68,6 @@ exports.addWorkoutPost = async (req, res, next) => {
     newWorkout.exercises = exerciseIds;
 
     const workoutId = await newWorkout.save();
-    console.log(workoutId);
 
     await User.findOneAndUpdate(
       { _id: userId },
@@ -72,9 +78,23 @@ exports.addWorkoutPost = async (req, res, next) => {
     res.json(workoutId._id);
   } catch (err) {
     console.log(err);
-    console.error(err);
     next(err);
   }
+};
+
+exports.getWorkout = (req, res, next) => {
+  const workoutId = req.params.workoutId;
+
+  Workout.findById(workoutId)
+    .populate("exercises")
+    .populate("sessions")
+    .exec((err, workout) => {
+      if (err) {
+        return next(err);
+      }
+
+      res.json(workout);
+    });
 };
 
 exports.getSession = (req, res, next) => {
@@ -90,21 +110,6 @@ exports.getSession = (req, res, next) => {
       }
 
       res.json(session);
-    });
-};
-
-exports.getWorkout = (req, res, next) => {
-  const id = req.params.workoutId;
-
-  Workout.findById(id)
-    .populate("exercises")
-    .populate("sessions")
-    .exec((err, workout) => {
-      if (err) {
-        return next(err);
-      }
-
-      res.json(workout);
     });
 };
 
@@ -203,7 +208,7 @@ exports.stopWorkout = async (req, res, next) => {
   }
 };
 
-exports.updateWorkoutPost = async (req, res, next) => {
+exports.updateWorkout = async (req, res, next) => {
   try {
     // TODO: grab previous exercises, keep the old ones, add new ones
     const workoutId = req.params.workoutId;
@@ -211,7 +216,7 @@ exports.updateWorkoutPost = async (req, res, next) => {
     const exerciseIds = [];
 
     // Loop through each exercise in the exercises array
-    const createdExercises = await Promise.all(
+    await Promise.all(
       exercises.map(async (exercise) => {
         // Create a new Exercise document based off of the Exercise Schema
         if (exercise._id) {
@@ -273,7 +278,7 @@ exports.updateWorkoutPost = async (req, res, next) => {
   }
 };
 
-exports.deleteWorkoutPost = async (req, res, next) => {
+exports.deleteWorkout = async (req, res, next) => {
   const userId = req.body.userId;
   const workoutId = req.params.workoutId;
 

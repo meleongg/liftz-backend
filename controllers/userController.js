@@ -317,13 +317,11 @@ exports.deleteGoal = async (req, res, next) => {
       return next(err);
     }
 
-    const updatedUser = await User.findOneAndUpdate(
+    await User.findOneAndUpdate(
       { _id: userId },
       { $pull: { goals: goalId } },
       { new: true }
     );
-
-    console.log(updatedUser);
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });
