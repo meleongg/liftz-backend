@@ -1,5 +1,6 @@
 const async = require("async");
 const bcrypt = require("bcryptjs");
+const { body, validationResult } = require("express-validator");
 
 const User = require("../models/User");
 const Goal = require("../models/Goal");
@@ -13,6 +14,13 @@ const Exercise = require("../models/Exercise");
 exports.validateEmail = async (req, res, next) => {
   const userId = req.params.userId;
   const email = req.body.email;
+
+  await body("email").isEmail().withMessage("Invalid email address").run(req);
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
   try {
     const user = await User.findById(userId);
@@ -32,6 +40,16 @@ exports.validatePassword = async (req, res, next) => {
   const userId = req.params.userId;
   const password = req.body.password;
 
+  await body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long")
+    .run(req);
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const user = await User.findById(userId);
     const compareRes = await bcrypt.compare(password, user.password);
@@ -50,6 +68,13 @@ exports.validatePassword = async (req, res, next) => {
 exports.checkEmail = async (req, res, next) => {
   const email = req.body.email;
 
+  await body("email").isEmail().withMessage("Invalid email address").run(req);
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const userArr = await User.find({ email: email }).exec();
 
@@ -64,24 +89,8 @@ exports.checkEmail = async (req, res, next) => {
   }
 };
 
-exports.userInfo = (req, res, next) => {
-  const userId = req.body.userId;
-
-  User.findById(userId)
-    .populate("goals")
-    .populate("stats")
-    .exec(function (err, user_info) {
-      if (err) {
-        return next(err);
-      }
-
-      res.json(user_info);
-    });
-};
-
 exports.getUserById = (req, res, next) => {
   const userId = req.params.userId;
-  console.log(userId);
 
   User.findById(userId)
     .populate("goals")
@@ -97,7 +106,6 @@ exports.getUserById = (req, res, next) => {
 };
 
 exports.addUser = (req, res, next) => {
-  // TODO: add input validation & cleansing
   const firstName = req.body.firstName;
   const lastName = req.body.lastName;
   const email = req.body.email;
@@ -106,14 +114,32 @@ exports.addUser = (req, res, next) => {
   const goals = [];
   const stats = [];
 
+  body("firstName").notEmpty().withMessage("First name is required").run(req);
+  body("lastName").notEmpty().withMessage("Last name is required").run(req);
+  body("email").isEmail().withMessage("Invalid email address").run(req);
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long")
+    .matches(
+      /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+-=,./<>?;':"[\]{}|~`]).{8,}$/
+    )
+    .withMessage(
+      "Password must contain at least 1 digit, 1 uppercase letter, 1 lowercase letter, and 1 special character"
+    )
+    .run(req);
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   bcrypt.hash(password, 10, async (err, hashedPassword) => {
-    // if err, do something
     if (err) {
       console.error(err);
       return next(err);
     }
 
-    // otherwise, store hashedPassword in DB
     const newUser = new User({
       firstName: firstName,
       lastName: lastName,
@@ -139,6 +165,24 @@ exports.updateUser = async (req, res, next) => {
   const userId = req.params.userId;
   const updatedEmail = req.body.email;
   const updatedPassword = req.body.password;
+
+  body("email").isEmail().withMessage("Invalid email address").run(req);
+  body("password")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long")
+    .matches(
+      /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+-=,./<>?;':"[\]{}|~`]).{8,}$/
+    )
+    .withMessage(
+      "Password must contain at least 1 digit, 1 uppercase letter, 1 lowercase letter, and 1 special character"
+    )
+    .run(req);
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
   try {
     const hashedPassword = await bcrypt.hash(updatedPassword, 10);
@@ -192,9 +236,16 @@ exports.deleteUser = async (req, res, next) => {
 };
 
 exports.addGoal = (req, res, next) => {
-  // TODO: add input validation & cleansing
   const content = req.body.goal;
   const userId = req.params.userId;
+
+  body("goal").notEmpty().withMessage("Goal content is required").run(req);
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
   User.findById(userId).exec((err, user) => {
     if (err) {
@@ -230,7 +281,13 @@ exports.updateGoal = async (req, res, next) => {
   const goalId = req.body.goalId;
   const updatedContent = req.body.content;
 
-  console.log(req.body);
+  body("content").notEmpty().withMessage("Goal content is required").run(req);
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
   try {
     const updatedGoal = await Goal.findByIdAndUpdate(
@@ -238,7 +295,6 @@ exports.updateGoal = async (req, res, next) => {
       { content: updatedContent },
       { new: true }
     );
-    console.log(updatedGoal);
   } catch (err) {
     console.log(err);
     return next(err);
@@ -250,9 +306,6 @@ exports.updateGoal = async (req, res, next) => {
 exports.deleteGoal = async (req, res, next) => {
   const goalId = req.body.goalId;
   const userId = req.params.userId;
-
-  console.log(goalId);
-  console.log(userId);
 
   try {
     const deletedGoal = await Goal.findByIdAndDelete(goalId);
