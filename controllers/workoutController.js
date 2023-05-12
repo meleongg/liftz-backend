@@ -7,16 +7,17 @@ const PR = require("../models/PR");
 const User = require("../models/User");
 
 const { DateTime } = require("luxon");
+const { body, validationResult } = require("express-validator");
 
-exports.getWorkouts = (req, res, next) => {
-  Workout.find({ user: tempID }).exec((err, workouts) => {
-    if (err) {
-      console.log(err);
-      return next(err);
-    }
-
+exports.getWorkouts = async (req, res, next) => {
+  try {
+    const tempID = req.params.tempID;
+    const workouts = await Workout.find({ user: tempID }).exec();
     res.json(workouts);
-  });
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
 };
 
 exports.addWorkoutPost = async (req, res, next) => {
@@ -82,35 +83,32 @@ exports.addWorkoutPost = async (req, res, next) => {
   }
 };
 
-exports.getWorkout = (req, res, next) => {
+exports.getWorkout = async (req, res, next) => {
   const workoutId = req.params.workoutId;
 
-  Workout.findById(workoutId)
-    .populate("exercises")
-    .populate("sessions")
-    .exec((err, workout) => {
-      if (err) {
-        return next(err);
-      }
-
-      res.json(workout);
-    });
+  try {
+    const workout = await Workout.findById(workoutId)
+      .populate("exercises")
+      .populate("sessions")
+      .exec();
+    res.json(workout);
+  } catch (err) {
+    next(err);
+  }
 };
 
-exports.getSession = (req, res, next) => {
-  const sessionId = req.params.sessionId;
-
-  Session.findById(sessionId)
-    .populate("exercises")
-    .populate("workout")
-    .exec((err, session) => {
-      if (err) {
-        console.log(err);
-        return next(err);
-      }
-
-      res.json(session);
-    });
+exports.getSession = async (req, res, next) => {
+  try {
+    const sessionId = req.params.sessionId;
+    const session = await Session.findById(sessionId)
+      .populate("exercises")
+      .populate("workout")
+      .exec();
+    res.json(session);
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
 };
 
 exports.stopWorkout = async (req, res, next) => {
@@ -200,6 +198,29 @@ exports.stopWorkout = async (req, res, next) => {
       { new: true }
     );
 
+    const user = await (await User.findById(userId)).populate("stats");
+    const stats = user.stats;
+
+    const newNumberOfWorkouts = stats.numberOfWorkouts + 1;
+    const newTotalWorkoutTime = stats.totalWorkoutTime + time;
+    let newAverageWorkoutTime;
+
+    if (newTotalWorkoutTime > 0) {
+      newAverageWorkoutTime = newTotalWorkoutTime / newNumberOfWorkouts;
+    } else {
+      newAverageWorkoutTime = 0;
+    }
+
+    await Stats.findByIdAndUpdate(
+      stats._id,
+      {
+        numberOfWorkouts: newNumberOfWorkouts,
+        totalWorkoutTime: newTotalWorkoutTime,
+        averageWorkoutTime: newAverageWorkoutTime,
+      },
+      { new: true }
+    );
+
     res.json(savedSession._id);
   } catch (err) {
     console.log(err);
@@ -210,7 +231,6 @@ exports.stopWorkout = async (req, res, next) => {
 
 exports.updateWorkout = async (req, res, next) => {
   try {
-    // TODO: grab previous exercises, keep the old ones, add new ones
     const workoutId = req.params.workoutId;
     const exercises = req.body.workout.exercises;
     const exerciseIds = [];

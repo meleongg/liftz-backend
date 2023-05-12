@@ -1,4 +1,3 @@
-const async = require("async");
 const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator");
 
@@ -89,30 +88,34 @@ exports.checkEmail = async (req, res, next) => {
   }
 };
 
-exports.getUserById = (req, res, next) => {
+exports.getUserById = async (req, res, next) => {
   const userId = req.params.userId;
 
-  User.findById(userId)
-    .populate("goals")
-    .populate("workouts")
-    .populate("stats")
-    .exec(function (err, user_info) {
-      if (err) {
-        return next(err);
-      }
+  try {
+    const user_info = await User.findById(userId)
+      .populate("goals")
+      .populate("workouts")
+      .populate("stats")
+      .exec();
 
-      res.json(user_info);
-    });
+    res.json(user_info);
+  } catch (err) {
+    return next(err);
+  }
 };
 
-exports.addUser = (req, res, next) => {
+exports.addUser = async (req, res, next) => {
   const firstName = req.body.firstName;
   const lastName = req.body.lastName;
   const email = req.body.email;
   const password = req.body.password;
   const workouts = [];
   const goals = [];
-  const stats = [];
+  const stats = {
+    numberOfWorkouts: 0,
+    totalWorkoutTime: 0,
+    averageWorkoutTime: 0,
+  };
 
   body("firstName").notEmpty().withMessage("First name is required").run(req);
   body("lastName").notEmpty().withMessage("Last name is required").run(req);
@@ -134,11 +137,12 @@ exports.addUser = (req, res, next) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  bcrypt.hash(password, 10, async (err, hashedPassword) => {
-    if (err) {
-      console.error(err);
-      return next(err);
-    }
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newStats = new Stats(stats);
+    const savedStats = await newStats.save();
+    const statsId = savedStats._id;
 
     const newUser = new User({
       firstName: firstName,
@@ -147,18 +151,15 @@ exports.addUser = (req, res, next) => {
       password: hashedPassword,
       workouts: workouts,
       goals: goals,
-      stats: stats,
+      stats: statsId,
     });
 
-    newUser.save((err) => {
-      if (err) {
-        console.error(err);
-        return next(err);
-      }
-
-      res.json(newUser);
-    });
-  });
+    const savedUser = await newUser.save();
+    res.json(savedUser);
+  } catch (err) {
+    console.error(err);
+    return next(err);
+  }
 };
 
 exports.updateUser = async (req, res, next) => {
@@ -220,7 +221,7 @@ exports.deleteUser = async (req, res, next) => {
       await SessionExercise.deleteMany({ session: session._id });
     }
     await Session.deleteMany({ user: userId });
-    // delete Stats?
+    await Stats.findOneAndDelete({ user: userId });
 
     const workouts = await Workout.find({ user: userId });
     for (const workout of workouts) {
@@ -235,7 +236,7 @@ exports.deleteUser = async (req, res, next) => {
   res.json({ message: "User deleted" });
 };
 
-exports.addGoal = (req, res, next) => {
+exports.addGoal = async (req, res, next) => {
   const content = req.body.goal;
   const userId = req.params.userId;
 
@@ -247,34 +248,24 @@ exports.addGoal = (req, res, next) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  User.findById(userId).exec((err, user) => {
-    if (err) {
-      return next(err);
-    }
-
+  try {
     const newGoal = new Goal({
       content: content,
       user: userId,
     });
 
-    newGoal.save((err, goal) => {
-      if (err) {
-        return next(err);
-      }
+    const goal = await newGoal.save();
 
-      User.findOneAndUpdate(
-        { _id: userId },
-        { $push: { goals: goal._id } },
-        { new: true },
-        (err, updatedUser) => {
-          if (err) {
-            return next(err);
-          }
-        }
-      );
-      res.json(goal._id);
-    });
-  });
+    await User.findOneAndUpdate(
+      { _id: userId },
+      { $push: { goals: goal._id } },
+      { new: true }
+    );
+
+    res.json(goal._id);
+  } catch (err) {
+    return next(err);
+  }
 };
 
 exports.updateGoal = async (req, res, next) => {
@@ -290,7 +281,7 @@ exports.updateGoal = async (req, res, next) => {
   }
 
   try {
-    const updatedGoal = await Goal.findByIdAndUpdate(
+    await Goal.findByIdAndUpdate(
       goalId,
       { content: updatedContent },
       { new: true }
@@ -328,48 +319,4 @@ exports.deleteGoal = async (req, res, next) => {
   }
 
   res.json(goalId);
-};
-
-exports.addStats = (req, res, next) => {
-  // TODO: add input validation & cleansing
-  const numberOfWorkouts = req.body.numberOfWorkouts;
-  const totalWorkoutTime = req.body.totalWorkoutTime;
-  const averageWorkoutTime = req.body.averageWorkoutTime;
-  const prs = [];
-
-  // TODO: turn these into actual db parsing
-  const mostFrequentWorkout = req.body.mostFrequentWorkout;
-  const mostFrequentExercise = req.body.mostFrequentExercise;
-
-  async.parallel(
-    {
-      user(callback) {
-        User.findById(tempID).exec(callback);
-      },
-    },
-    (err, results) => {
-      if (err) {
-        return next(err);
-      }
-
-      const newStats = new Stats({
-        numberOfWorkouts: numberOfWorkouts,
-        totalWorkoutTime: totalWorkoutTime,
-        averageWorkoutTime: averageWorkoutTime,
-        mostFrequentWorkout: mostFrequentWorkout,
-        mostFrequentExercise: mostFrequentExercise,
-        prs: prs,
-        user: results.user._id,
-      });
-
-      newStats.save((err) => {
-        if (err) {
-          return next(err);
-        }
-
-        // TODO: redirect user if successful
-        res.json("Stats added");
-      });
-    }
-  );
 };

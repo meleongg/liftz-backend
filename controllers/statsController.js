@@ -1,14 +1,14 @@
 const PR = require("../models/PR");
 
-exports.getPrs = (req, res, next) => {
-  const userId = req.params.userId;
+exports.getPrs = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
 
-  PR.find({ user: userId }).exec((err, stats) => {
-    if (err) {
-      console.log(err);
-      return next(err);
-    }
+    const stats = await PR.find({ user: userId }).exec();
 
     res.json(stats);
-  });
+  } catch (err) {
+    console.log(err);
+    return next(err);
+  }
 };

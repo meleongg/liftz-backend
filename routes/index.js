@@ -23,6 +23,4 @@ router.post("/:userId/update-goal", userController.updateGoal);
 
 router.post("/:userId/delete-goal", userController.deleteGoal);
 
-router.post("/create-stats", userController.addStats);
-
 module.exports = router;
