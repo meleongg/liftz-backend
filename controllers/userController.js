@@ -10,6 +10,10 @@ const SessionExercise = require("../models/SessionExercise");
 const Workout = require("../models/Workout");
 const Exercise = require("../models/Exercise");
 
+exports.getMsg = async (req, res, next) => {
+  res.json({ message: "Running!" });
+};
+
 exports.validateEmail = async (req, res, next) => {
   const userId = req.params.userId;
   const email = req.body.email;

@@ -3,6 +3,8 @@ var router = express.Router();
 
 const userController = require("../controllers/userController");
 
+router.get("/", userController.getMsg);
+
 router.post("/:userId/validate-email", userController.validateEmail);
 
 router.post("/:userId/validate-password", userController.validatePassword);
