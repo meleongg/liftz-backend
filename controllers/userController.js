@@ -3,7 +3,6 @@ const { body, validationResult } = require("express-validator");
 
 const User = require("../models/User");
 const Goal = require("../models/Goal");
-const Stats = require("../models/Stats");
 const PR = require("../models/PR");
 const Session = require("../models/Session");
 const SessionExercise = require("../models/SessionExercise");
@@ -99,7 +98,6 @@ exports.getUserById = async (req, res, next) => {
     const user_info = await User.findById(userId)
       .populate("goals")
       .populate("workouts")
-      .populate("stats")
       .exec();
 
     res.json(user_info);
@@ -115,11 +113,6 @@ exports.addUser = async (req, res, next) => {
   const password = req.body.password;
   const workouts = [];
   const goals = [];
-  const stats = {
-    numberOfWorkouts: 0,
-    totalWorkoutTime: 0,
-    averageWorkoutTime: 0,
-  };
 
   body("firstName").notEmpty().withMessage("First name is required").run(req);
   body("lastName").notEmpty().withMessage("Last name is required").run(req);
@@ -144,10 +137,6 @@ exports.addUser = async (req, res, next) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newStats = new Stats(stats);
-    const savedStats = await newStats.save();
-    const statsId = savedStats._id;
-
     const newUser = new User({
       firstName: firstName,
       lastName: lastName,
@@ -155,7 +144,6 @@ exports.addUser = async (req, res, next) => {
       password: hashedPassword,
       workouts: workouts,
       goals: goals,
-      stats: statsId,
     });
 
     const savedUser = await newUser.save();
@@ -225,7 +213,6 @@ exports.deleteUser = async (req, res, next) => {
       await SessionExercise.deleteMany({ session: session._id });
     }
     await Session.deleteMany({ user: userId });
-    await Stats.findOneAndDelete({ user: userId });
 
     const workouts = await Workout.find({ user: userId });
     for (const workout of workouts) {

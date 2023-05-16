@@ -10,7 +10,6 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     workouts: [{ type: Schema.Types.ObjectId, ref: "Workout" }],
     goals: [{ type: Schema.Types.ObjectId, ref: "Goal" }],
-    stats: { type: Schema.Types.ObjectId, ref: "Stats" },
   },
   { timestamps: true }
 );

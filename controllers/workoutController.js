@@ -2,7 +2,6 @@ const Workout = require("../models/Workout");
 const Exercise = require("../models/Exercise");
 const SessionExercise = require("../models/SessionExercise");
 const Session = require("../models/Session");
-const Stats = require("../models/Stats");
 const PR = require("../models/PR");
 const User = require("../models/User");
 
@@ -195,29 +194,6 @@ exports.stopWorkout = async (req, res, next) => {
     await Workout.findOneAndUpdate(
       { _id: workoutId },
       { $push: { sessions: savedSession._id } },
-      { new: true }
-    );
-
-    const user = await (await User.findById(userId)).populate("stats");
-    const stats = user.stats;
-
-    const newNumberOfWorkouts = stats.numberOfWorkouts + 1;
-    const newTotalWorkoutTime = stats.totalWorkoutTime + time;
-    let newAverageWorkoutTime;
-
-    if (newTotalWorkoutTime > 0) {
-      newAverageWorkoutTime = newTotalWorkoutTime / newNumberOfWorkouts;
-    } else {
-      newAverageWorkoutTime = 0;
-    }
-
-    await Stats.findByIdAndUpdate(
-      stats._id,
-      {
-        numberOfWorkouts: newNumberOfWorkouts,
-        totalWorkoutTime: newTotalWorkoutTime,
-        averageWorkoutTime: newAverageWorkoutTime,
-      },
       { new: true }
     );
 

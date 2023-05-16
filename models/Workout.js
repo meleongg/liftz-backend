@@ -10,9 +10,4 @@ const workoutSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: "User" },
 });
 
-// virtual for workout's url
-workoutSchema.virtual("url").get(function () {
-  return "/workouts/" + this._id;
-});
-
 module.exports = mongoose.model("Workout", workoutSchema);
