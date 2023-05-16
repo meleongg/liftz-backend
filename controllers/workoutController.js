@@ -5,7 +5,13 @@ const Session = require("../models/Session");
 const PR = require("../models/PR");
 const User = require("../models/User");
 
-const { DateTime } = require("luxon");
+const { DateTime, Info } = require("luxon");
+// Retrieve the user's current locale
+const userLocale = Info.currentLocale();
+
+// Set the Luxon locale to the user's location
+DateTime.local().setLocale(userLocale);
+
 const { body, validationResult } = require("express-validator");
 
 exports.getWorkouts = async (req, res, next) => {
@@ -112,7 +118,6 @@ exports.getSession = async (req, res, next) => {
 
 exports.stopWorkout = async (req, res, next) => {
   const date = DateTime.now().toLocaleString(DateTime.DATE_SHORT);
-  const time = req.body.time;
   const userId = req.body.userId;
   const sessionExercises = req.body.sessionExercises;
   const workoutId = req.params.workoutId;
@@ -183,7 +188,6 @@ exports.stopWorkout = async (req, res, next) => {
 
     const session = new Session({
       date: date,
-      time: time,
       exercises: exerciseIds,
       workout: workoutId,
       user: userId,
