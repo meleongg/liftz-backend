@@ -5,12 +5,7 @@ const Session = require("../models/Session");
 const PR = require("../models/PR");
 const User = require("../models/User");
 
-const { DateTime, Info } = require("luxon");
-// Retrieve the user's current locale
-const userLocale = Info.currentLocale();
-
-// Set the Luxon locale to the user's location
-DateTime.local().setLocale(userLocale);
+const { DateTime } = require("luxon");
 
 const { body, validationResult } = require("express-validator");
 

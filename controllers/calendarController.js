@@ -1,5 +1,7 @@
 const Session = require("../models/Session");
 
+const { DateTime } = require("luxon");
+
 exports.getSessions = async (req, res, next) => {
   try {
     const userId = req.params.userId;
@@ -17,20 +19,28 @@ exports.getSessions = async (req, res, next) => {
 
 exports.getSessionsByDate = async (req, res, next) => {
   try {
+    const userTimeZone = "America/Los_Angeles";
     const userId = req.params.userId;
-    const isoDate = req.params.date;
+    const date = req.params.date;
 
-    const date = new Date(isoDate);
-    const startOfDay = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+    const [month, day, year] = date.split("-");
+
+    // Create a Luxon DateTime object using the user's time zone and the provided date components
+    const userDateTime = DateTime.fromObject(
+      {
+        year: Number(year),
+        month: Number(month),
+        day: Number(day),
+      },
+      { zone: userTimeZone }
     );
-    const endOfDay = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate() + 2)
-    );
+
+    const startOfDay = userDateTime.startOf("day");
+    const endOfDay = userDateTime.endOf("day");
 
     const sessions = await Session.find({
       user: userId,
-      date: { $gte: startOfDay.toISOString(), $lt: endOfDay.toISOString() },
+      date: { $gte: startOfDay.toJSDate(), $lt: endOfDay.toJSDate() },
     })
       .populate("workout")
       .exec();
