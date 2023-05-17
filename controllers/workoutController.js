@@ -112,7 +112,9 @@ exports.getSession = async (req, res, next) => {
 };
 
 exports.stopWorkout = async (req, res, next) => {
-  const date = DateTime.now().toLocaleString(DateTime.DATE_SHORT);
+  const date = DateTime.now()
+    .setZone("America/Los_Angeles")
+    .toLocaleString(DateTime.DATE_SHORT);
   const userId = req.body.userId;
   const sessionExercises = req.body.sessionExercises;
   const workoutId = req.params.workoutId;
