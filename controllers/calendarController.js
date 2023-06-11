@@ -35,8 +35,6 @@ exports.getSessionsByDate = async (req, res, next) => {
             { zone: timezone }
         );
 
-        console.log(userDateTime);
-
         const startOfDay = userDateTime.startOf("day");
         const endOfDay = userDateTime.endOf("day");
 
