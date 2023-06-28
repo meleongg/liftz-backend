@@ -11,9 +11,9 @@ exports.getSessions = async (req, res, next) => {
             .exec();
 
         res.json(sessions);
-    } catch (error) {
-        console.log(error);
-        next(error);
+    } catch (err) {
+        console.log(err);
+        next(err);
     }
 };
 
@@ -46,8 +46,8 @@ exports.getSessionsByDate = async (req, res, next) => {
             .exec();
 
         res.json(sessions);
-    } catch (error) {
-        console.log(error);
-        next(error);
+    } catch (err) {
+        console.log(err);
+        next(err);
     }
 };

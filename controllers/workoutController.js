@@ -112,11 +112,7 @@ exports.getSession = async (req, res, next) => {
 };
 
 exports.stopWorkout = async (req, res, next) => {
-    // const date = DateTime.now()
-    //     .setZone("America/Los_Angeles")
-    //     .toLocaleString(DateTime.DATE_SHORT);
     const date = DateTime.utc();
-    console.log(date);
     const userId = req.body.userId;
     const sessionExercises = req.body.sessionExercises;
     const workout = req.body.workout;
@@ -277,9 +273,9 @@ exports.updateWorkout = async (req, res, next) => {
         );
 
         res.json(updatedWorkout._id);
-    } catch (error) {
-        console.log(error);
-        next(error);
+    } catch (err) {
+        console.log(err);
+        next(err);
     }
 };
 
