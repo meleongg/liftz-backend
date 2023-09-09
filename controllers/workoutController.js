@@ -95,8 +95,6 @@ exports.getWorkout = async (req, res, next) => {
 
         workout.exercises.sort((a, b) => a.position - b.position);
 
-        console.log(workout);
-
         res.json(workout);
     } catch (err) {
         next(err);
