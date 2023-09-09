@@ -51,6 +51,7 @@ exports.addWorkoutPost = async (req, res, next) => {
             exercises.map(async (exercise) => {
                 // Create a new Exercise document based off of the Exercise Schema
                 const newExercise = new Exercise({
+                    position: exercise.position,
                     name: exercise.name,
                     sets: exercise.sets,
                     reps: exercise.reps,
@@ -91,6 +92,11 @@ exports.getWorkout = async (req, res, next) => {
             .populate("exercises")
             .populate("sessions")
             .exec();
+
+        workout.exercises.sort((a, b) => a.position - b.position);
+
+        console.log(workout);
+
         res.json(workout);
     } catch (err) {
         next(err);
@@ -222,6 +228,7 @@ exports.updateWorkout = async (req, res, next) => {
                 // Create a new Exercise document based off of the Exercise Schema
                 if (exercise._id) {
                     const exerciseUpdates = {
+                        position: exercise.position,
                         name: exercise.name,
                         sets: exercise.sets,
                         reps: exercise.reps,
@@ -238,6 +245,7 @@ exports.updateWorkout = async (req, res, next) => {
                     return updatedExercise;
                 } else {
                     const newExercise = new Exercise({
+                        position: exercises.length + 1,
                         name: exercise.name,
                         sets: exercise.sets,
                         reps: exercise.reps,
