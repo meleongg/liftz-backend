@@ -1,4 +1,5 @@
 const PR = require("../models/PR");
+const Exercise = require("../models/Exercise");
 
 exports.getPrs = async (req, res, next) => {
   try {
@@ -25,6 +26,8 @@ exports.deletePr = async (req, res, next) => {
       console.error(err);
       return next(err);
     }
+
+    await Exercise.updateMany({ pr: prId }, { $set: { pr: null } });
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });
