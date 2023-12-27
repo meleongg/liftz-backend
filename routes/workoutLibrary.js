@@ -11,6 +11,8 @@ router.get("/:workoutId", workoutController.getWorkout);
 
 router.get("/sessions/:sessionId", workoutController.getSession);
 
+router.delete("/sessions/:sessionId", workoutController.deleteSession);
+
 router.post("/:workoutId/session-end", workoutController.stopWorkout);
 
 router.post("/:workoutId/update", workoutController.updateWorkout);

@@ -115,6 +115,41 @@ exports.getSession = async (req, res, next) => {
   }
 };
 
+exports.deleteSession = async (req, res, next) => {
+  const sessionId = req.params.sessionId;
+
+  try {
+    const deletedSession = await Session.findByIdAndDelete(sessionId);
+
+    if (!deletedSession) {
+      const err = new Error("Document not found!");
+      err.status = 404;
+      console.error(err);
+      return next(err);
+    }
+
+    // Remove session ID from workout's sessions array
+    const workoutId = deletedSession.workout;
+    await Workout.findByIdAndUpdate(
+      workoutId,
+      { $pull: { sessions: sessionId } },
+      { new: true }
+    );
+
+    // Delete all session exercises associated with the session
+    await SessionExercise.deleteMany({
+      _id: { $in: deletedSession.exercises },
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ error: "Internal Server Error" });
+  }
+
+  res.json({
+    message: "Successfully deleted session and associated session exercises.",
+  });
+};
+
 exports.stopWorkout = async (req, res, next) => {
   const date = DateTime.utc();
   const userId = req.body.userId;
@@ -307,6 +342,7 @@ exports.deleteWorkout = async (req, res, next) => {
 
     await Exercise.deleteMany({ workout: workoutId });
     await Session.deleteMany({ workout: workoutId });
+    await PR.deleteMany({ workout: workoutId });
   } catch (err) {
     console.log(err);
     res.status(500).send({ error: "Internal Server Error" });
