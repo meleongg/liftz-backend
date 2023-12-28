@@ -191,8 +191,6 @@ exports.stopWorkout = async (req, res, next) => {
 
         await pr.save();
       } else {
-        console.log(newWeights);
-
         const newPr = new PR({
           exercise: exercise.name,
           weights: newWeights,
